@@ -1,0 +1,874 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>통계분석 웹 대시보드 (로컬 파일 분석)</title>
+  <style>
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --success: #10b981;
+  --danger: #ef4444;
+  --radius: 14px;
+  --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.brand-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #0ea5e9);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+}
+
+.brand h1 { font-size: 16px; font-weight: 700; color: #fff; }
+.brand p { font-size: 11px; color: #94a3b8; }
+
+.sidebar-section { margin-top: 16px; }
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.dataset-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.ds-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+.ds-btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+.ds-btn.active {
+  background: linear-gradient(135deg, rgba(79,70,229,0.9), rgba(14,165,233,0.85));
+  border-color: transparent;
+  color: #fff;
+}
+.ds-icon { font-size: 18px; }
+.ds-btn strong { display: block; font-size: 13px; }
+.ds-btn small { display: block; font-size: 11px; opacity: 0.8; }
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.nav-item.active { background: var(--accent); color: #fff; font-weight: 600; }
+.nav-num { font-size: 11px; font-weight: 700; opacity: 0.7; min-width: 20px; }
+
+.sidebar-footer {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 14px;
+  font-size: 12px;
+}
+
+.privacy-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+.meta-row strong { color: #f8fafc; }
+
+/* Main */
+.main-content {
+  padding: 28px 32px;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.topbar h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.topbar p { color: var(--text-muted); font-size: 14px; margin-top: 2px; }
+
+.btn-reset {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-reset:hover { background: var(--surface-2); }
+
+/* Upload Screen */
+.upload-screen {
+  display: grid;
+  place-items: center;
+  min-height: 62vh;
+}
+
+.upload-card {
+  background: var(--surface);
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  padding: 48px 36px;
+  text-align: center;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+.upload-card.dragover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.upload-icon { font-size: 48px; margin-bottom: 12px; }
+.upload-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.upload-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 22px; }
+
+.btn-primary {
+  padding: 12px 28px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-primary:hover { background: #4338ca; }
+
+.upload-note {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upload-error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Dashboard Panels */
+.tab-panel { display: none; flex-direction: column; gap: 20px; }
+.tab-panel.active { display: flex; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.kpi-value { font-size: 24px; font-weight: 800; margin: 6px 0 4px; }
+.kpi-sub { font-size: 12px; color: var(--text-muted); }
+.kpi-sub.up { color: var(--success); font-weight: 600; }
+.kpi-sub.down { color: var(--danger); font-weight: 600; }
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.card-header h3 { font-size: 16px; font-weight: 700; }
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.tag.accent { background: var(--accent-soft); color: var(--accent); border-color: #c7d2fe; }
+
+.chart-box { position: relative; height: 320px; width: 100%; }
+.chart-box.tall { height: 380px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; font-weight: 600; }
+th { background: var(--surface-2); color: var(--text-muted); font-weight: 700; font-size: 12px; }
+
+.corr-grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+.corr-grid th, .corr-grid td { text-align: center; padding: 14px 10px; border: 1px solid var(--border); }
+.corr-grid th { background: var(--surface-2); }
+.corr-cell { font-weight: 700; }
+
+.insight-card { border-left: 4px solid var(--accent); background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%); }
+.insight-body { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: #1e293b; }
+.insight-item { padding: 12px 14px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); }
+.insight-item strong { color: var(--accent); }
+
+.badge-sig { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #dcfce7; color: #166534; }
+.badge-ns { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; }
+
+@media (max-width: 1024px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">STAT</div>
+        <div>
+          <h1>통계분석 대시보드</h1>
+          <p>Client-Side Analytics</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">1. 데이터 종류 선택</div>
+        <div class="dataset-switcher" id="datasetSwitcher">
+          <button class="ds-btn active" data-dataset="sales">
+            <span class="ds-icon">📊</span>
+            <div>
+              <strong>가상기업 매출</strong>
+              <small>월간 매출 시계열</small>
+            </div>
+          </button>
+          <button class="ds-btn" data-dataset="sensor">
+            <span class="ds-icon">🌡️</span>
+            <div>
+              <strong>센서 스무딩</strong>
+              <small>온도·진동·압력 시계열</small>
+            </div>
+          </button>
+          <button class="ds-btn" data-dataset="apple">
+            <span class="ds-icon">📈</span>
+            <div>
+              <strong>주가 데이터</strong>
+              <small>OHLCV 일별 시세</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <nav class="nav-menu" id="navMenu" style="display:none;"></nav>
+
+      <div class="sidebar-footer">
+        <div class="privacy-badge">🔒 100% 브라우저 내 처리<br/>데이터가 외부로 전송되지 않습니다.</div>
+        <div id="sidebarMeta" style="margin-top:8px;"></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">데이터를 업로드하여 분석을 시작하세요</h2>
+          <p id="pageSubtitle">좌측에서 데이터 종류를 선택한 뒤, Excel(.xlsx, .xls) 또는 CSV(.csv) 파일을 업로드하세요.</p>
+        </div>
+        <div id="topbarActions" style="display:none;">
+          <button class="btn-reset" id="resetBtn">다른 파일 업로드</button>
+        </div>
+      </header>
+
+      <!-- Empty Landing / Upload Screen -->
+      <section id="uploadScreen" class="upload-screen">
+        <div class="upload-card" id="dropZone">
+          <div class="upload-icon">📂</div>
+          <h3>분석할 파일 선택 또는 드래그 앤 드롭</h3>
+          <p id="uploadHint">선택된 데이터 종류: <strong>가상기업 매출</strong> (.xlsx, .xls, .csv 지원)</p>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn-primary" id="selectFileBtn">파일 선택하기</button>
+          <div class="upload-note">
+            <span>✓ 서버 업로드 없음</span>
+            <span>✓ 순수 HTML/CSS/JS 로컬 연산</span>
+            <span>✓ 5대 통계기법 자동 분석</span>
+          </div>
+          <div id="uploadError" class="upload-error" style="display:none;"></div>
+        </div>
+      </section>
+
+      <!-- Dynamic Analysis Content (Hidden until file uploaded) -->
+      <div id="analysisContainer" style="display:none;"></div>
+    </main>
+  </div>
+
+  <script>
+(() => {
+  let selectedDataset = "sales";
+  const charts = {};
+
+  const DATASET_LABELS = {
+    sales: "가상기업 매출",
+    sensor: "센서 스무딩",
+    apple: "주가 데이터 (OHLCV)"
+  };
+
+  // --- Statistical Helpers ---
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const mean = (a) => sum(a) / a.length;
+  const variance = (a) => {
+    const m = mean(a);
+    return sum(a.map((x) => (x - m) ** 2)) / (a.length - 1);
+  };
+  const std = (a) => Math.sqrt(variance(a));
+  const quantile = (sorted, q) => {
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+  };
+  const skewness = (a) => {
+    const n = a.length, m = mean(a), s = std(a);
+    if (!s || n < 3) return 0;
+    return (n / ((n - 1) * (n - 2))) * sum(a.map((x) => ((x - m) / s) ** 3));
+  };
+  const kurtosis = (a) => {
+    const n = a.length, m = mean(a), s = std(a);
+    if (!s || n < 4) return 0;
+    return ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * sum(a.map((x) => ((x - m) / s) ** 4)) - (3 * (n - 1) ** 2) / ((n - 2) * (n - 3));
+  };
+  const linearRegression = (y) => {
+    const n = y.length, x = y.map((_, i) => i + 1), mx = mean(x), my = mean(y);
+    let num = 0, den = 0;
+    for (let i = 0; i < n; i++) { num += (x[i] - mx) * (y[i] - my); den += (x[i] - mx) ** 2; }
+    const slope = num / den, intercept = my - slope * mx;
+    const yHat = x.map((xi) => slope * xi + intercept);
+    const ssRes = sum(y.map((yi, i) => (yi - yHat[i]) ** 2));
+    const ssTot = sum(y.map((yi) => (yi - my) ** 2));
+    return { slope, intercept, r2: 1 - ssRes / ssTot, yHat };
+  };
+  const pearson = (x, y) => {
+    const mx = mean(x), my = mean(y);
+    let num = 0, dx = 0, dy = 0;
+    for (let i = 0; i < x.length; i++) { num += (x[i] - mx) * (y[i] - my); dx += (x[i] - mx) ** 2; dy += (y[i] - my) ** 2; }
+    return num / Math.sqrt(dx * dy);
+  };
+  const fmt = (v, d = 2) => Number(v).toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  const makeChart = (id, config) => {
+    if (charts[id]) charts[id].destroy();
+    const el = document.getElementById(id);
+    if (!el) return;
+    charts[id] = new Chart(el.getContext("2d"), config);
+  };
+
+  // --- UI Controls ---
+  const uploadScreen = document.getElementById("uploadScreen");
+  const analysisContainer = document.getElementById("analysisContainer");
+  const navMenu = document.getElementById("navMenu");
+  const topbarActions = document.getElementById("topbarActions");
+  const uploadError = document.getElementById("uploadError");
+  const fileInput = document.getElementById("fileInput");
+  const dropZone = document.getElementById("dropZone");
+
+  document.getElementById("datasetSwitcher").addEventListener("click", (e) => {
+    const btn = e.target.closest(".ds-btn");
+    if (!btn) return;
+    selectedDataset = btn.dataset.dataset;
+    document.querySelectorAll(".ds-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("uploadHint").innerHTML = `선택된 데이터 종류: <strong>${DATASET_LABELS[selectedDataset]}</strong> (.xlsx, .xls, .csv 지원)`;
+    resetToUpload();
+  });
+
+  function resetToUpload() {
+    Object.values(charts).forEach((c) => c.destroy());
+    uploadScreen.style.display = "grid";
+    analysisContainer.style.display = "none";
+    analysisContainer.innerHTML = "";
+    navMenu.style.display = "none";
+    topbarActions.style.display = "none";
+    uploadError.style.display = "none";
+    fileInput.value = "";
+    document.getElementById("sidebarMeta").innerHTML = "";
+    document.getElementById("pageTitle").textContent = "데이터를 업로드하여 분석을 시작하세요";
+    document.getElementById("pageSubtitle").textContent = "좌측에서 데이터 종류를 선택한 뒤, Excel(.xlsx, .xls) 또는 CSV(.csv) 파일을 업로드하세요.";
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", resetToUpload);
+  document.getElementById("selectFileBtn").addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function showError(msg) {
+    uploadError.textContent = msg;
+    uploadError.style.display = "block";
+  }
+
+  function handleFile(file) {
+    uploadError.style.display = "none";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const firstSheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: null });
+        if (!rows || rows.length < 5) {
+          return showError("데이터 행이 너무 적거나 올바른 표 형식이 아닙니다.");
+        }
+        runAnalysis(rows, file.name);
+      } catch (err) {
+        showError("파일을 읽는 중 오류가 발생했습니다: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function setupTabs(navItems) {
+    navMenu.innerHTML = navItems.map((n, i) => `
+      <button class="nav-item ${i === 0 ? "active" : ""}" data-tab="${n.tab}">
+        <span class="nav-num">${n.num}</span><span>${n.label}</span>
+      </button>
+    `).join("");
+    navMenu.style.display = "flex";
+    topbarActions.style.display = "block";
+    uploadScreen.style.display = "none";
+    analysisContainer.style.display = "block";
+
+    navMenu.onclick = (e) => {
+      const btn = e.target.closest(".nav-item");
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+      navMenu.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      analysisContainer.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      document.getElementById(`tab-${tab}`).classList.add("active");
+      const item = navItems.find((x) => x.tab === tab);
+      document.getElementById("pageTitle").textContent = item.title;
+      document.getElementById("pageSubtitle").textContent = item.sub;
+    };
+    document.getElementById("pageTitle").textContent = navItems[0].title;
+    document.getElementById("pageSubtitle").textContent = navItems[0].sub;
+  }
+
+  function runAnalysis(rows, fileName) {
+    document.getElementById("sidebarMeta").innerHTML = `
+      <div class="meta-row"><span>파일명</span><strong>${fileName}</strong></div>
+      <div class="meta-row"><span>관측치</span><strong>${rows.length.toLocaleString()}행</strong></div>
+    `;
+    if (selectedDataset === "sales") analyzeSales(rows);
+    else if (selectedDataset === "sensor") analyzeSensor(rows);
+    else analyzeApple(rows);
+  }
+
+  // ==================== 1. SALES ANALYSIS ====================
+  function analyzeSales(rows) {
+    const keys = Object.keys(rows[0]);
+    const numCols = keys.filter((k) => typeof rows[0][k] === "number" && !k.includes("월") && !k.includes("Date"));
+    if (numCols.length < 2) return showError("가상기업 매출 데이터 형식이 아닙니다. (수치형 매출 컬럼 2개 이상 필요)");
+
+    const colors = ["#4f46e5", "#0ea5e9", "#f59e0b", "#10b981"];
+    const companies = numCols.slice(0, 3).map((k, i) => ({
+      key: k,
+      name: k.replace(/매출.*|\(.*\)/g, "").trim() || k,
+      color: colors[i]
+    }));
+    const labels = rows.map((r, i) => {
+      const v = r[keys[0]];
+      if (typeof v === "number" && v > 30000) {
+        const d = XLSX.SSF.parse_date_code(v);
+        return `${d.y}-${String(d.m).padStart(2, "0")}`;
+      }
+      return String(v || i + 1);
+    });
+    const series = {};
+    companies.forEach((c) => { series[c.key] = rows.map((r) => Number(r[c.key]) || 0); });
+
+    setupTabs([
+      { tab: "s1", num: "01", label: "기술통계량 분석", title: "01. 기술통계량 분석", sub: "중심경향치, 산포도, 분포형태(왜도·첨도) 분석" },
+      { tab: "s2", num: "02", label: "시계열 · 선형회귀", title: "02. 시계열 추세 · 선형회귀", sub: "OLS 추세선, R², 12개월 예측" },
+      { tab: "s3", num: "03", label: "계절성 · 월별 패턴", title: "03. 계절성 · 월별 패턴", sub: "월별 계절지수 및 성수기/비수기 분석" },
+      { tab: "s4", num: "04", label: "상관관계 분석", title: "04. 상관관계 분석", sub: "기업 간 피어슨 상관계수(r) 행렬" },
+      { tab: "s5", num: "05", label: "일원분산분석 (ANOVA)", title: "05. 일원분산분석 (ANOVA)", sub: "기업 간 월평균 매출 차이 F-검정" }
+    ]);
+
+    analysisContainer.innerHTML = `
+      <section class="tab-panel active" id="tab-s1">
+        <div class="kpi-grid" id="salesKpi"></div>
+        <div class="card"><div class="card-header"><h3>기술통계량 요약표</h3></div><div class="table-wrap" id="salesDescTbl"></div></div>
+        <div class="card"><div class="card-header"><h3>월간 매출 추이</h3></div><div class="chart-box"><canvas id="salesTrendChart"></canvas></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body" id="salesDescIns"></div></div>
+      </section>
+      <section class="tab-panel" id="tab-s2">
+        <div class="card"><div class="card-header"><h3>선형회귀 분석 결과</h3></div><div class="table-wrap" id="salesRegTbl"></div></div>
+        <div class="card"><div class="card-header"><h3>추세선 비교</h3></div><div class="chart-box tall"><canvas id="salesRegChart"></canvas></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body" id="salesRegIns"></div></div>
+      </section>
+      <section class="tab-panel" id="tab-s3">
+        <div class="card"><div class="card-header"><h3>월별 계절지수 (평균=100)</h3></div><div class="chart-box"><canvas id="salesSeasChart"></canvas></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body" id="salesSeasIns"></div></div>
+      </section>
+      <section class="tab-panel" id="tab-s4">
+        <div class="card"><div class="card-header"><h3>피어슨 상관계수 행렬</h3></div><div id="salesCorrTbl"></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body" id="salesCorrIns"></div></div>
+      </section>
+      <section class="tab-panel" id="tab-s5">
+        <div class="card"><div class="card-header"><h3>일원분산분석 (ANOVA)</h3></div><div class="table-wrap" id="salesAnovaTbl"></div></div>
+        <div class="card"><div class="card-header"><h3>기업별 평균 비교</h3></div><div class="chart-box"><canvas id="salesAnovaChart"></canvas></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body" id="salesAnovaIns"></div></div>
+      </section>
+    `;
+
+    // Render 1: Descriptive
+    document.getElementById("salesKpi").innerHTML = companies.map((c) => `
+      <div class="kpi-card">
+        <div class="kpi-label" style="color:${c.color}">${c.name} 누적 매출</div>
+        <div class="kpi-value">${fmt(sum(series[c.key]), 1)}</div>
+        <div class="kpi-sub">월평균 ${fmt(mean(series[c.key]), 2)}</div>
+      </div>
+    `).join("");
+
+    document.getElementById("salesDescTbl").innerHTML = `
+      <table><thead><tr><th>기업</th><th>평균</th><th>중앙값</th><th>표준편차</th><th>CV(%)</th><th>최솟값</th><th>최댓값</th><th>왜도</th></tr></thead>
+      <tbody>${companies.map((c) => {
+        const a = series[c.key], s = [...a].sort((x, y) => x - y), m = mean(a), sd = std(a);
+        return `<tr><td style="color:${c.color}">${c.name}</td><td>${fmt(m)}</td><td>${fmt(quantile(s, 0.5))}</td><td>${fmt(sd)}</td><td>${fmt((sd / m) * 100)}%</td><td>${fmt(s[0])}</td><td>${fmt(s[s.length - 1])}</td><td>${fmt(skewness(a))}</td></tr>`;
+      }).join("")}</tbody></table>
+    `;
+    makeChart("salesTrendChart", {
+      type: "line",
+      data: { labels, datasets: companies.map((c) => ({ label: c.name, data: series[c.key], borderColor: c.color, borderWidth: 2, pointRadius: 0 })) },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 12 } } } }
+    });
+    document.getElementById("salesDescIns").innerHTML = `<div class="insight-item"><strong>분포 요약:</strong> 총 ${rows.length}개월 데이터를 기준으로 각 기업의 중심경향과 변동성을 산출했습니다.</div>`;
+
+    // Render 2: Regression
+    const regs = companies.map((c) => ({ ...c, ...linearRegression(series[c.key]) }));
+    document.getElementById("salesRegTbl").innerHTML = `
+      <table><thead><tr><th>기업</th><th>기울기 (월평균 증감)</th><th>결정계수 (R²)</th></tr></thead>
+      <tbody>${regs.map((r) => `<tr><td style="color:${r.color}">${r.name}</td><td>${r.slope >= 0 ? "+" : ""}${fmt(r.slope, 3)}</td><td>${fmt(r.r2, 3)}</td></tr>`).join("")}</tbody></table>
+    `;
+    makeChart("salesRegChart", {
+      type: "line",
+      data: { labels, datasets: regs.map((r) => ({ label: `${r.name} 추세선`, data: r.yHat, borderColor: r.color, borderWidth: 2.5, pointRadius: 0 })) },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 12 } } } }
+    });
+    document.getElementById("salesRegIns").innerHTML = `<div class="insight-item"><strong>추세 해석:</strong> 기울기가 양(+)인 기업은 지속 성장세, 음(-)인 기업은 완만한 감소세를 나타냅니다.</div>`;
+
+    // Render 3: Seasonality
+    const mLabels = Array.from({ length: 12 }, (_, i) => `${i + 1}월`);
+    makeChart("salesSeasChart", {
+      type: "line",
+      data: {
+        labels: mLabels,
+        datasets: companies.map((c) => {
+          const gm = mean(series[c.key]);
+          const idx = Array.from({ length: 12 }, (_, m) => (mean(series[c.key].filter((_, i) => i % 12 === m)) / gm) * 100);
+          return { label: c.name, data: idx, borderColor: c.color, borderWidth: 2 };
+        })
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    document.getElementById("salesSeasIns").innerHTML = `<div class="insight-item"><strong>계절성:</strong> 계절지수 100 이상인 월은 연평균 대비 성수기, 100 미만은 비수기입니다.</div>`;
+
+    // Render 4: Correlation
+    document.getElementById("salesCorrTbl").innerHTML = `
+      <table class="corr-grid"><thead><tr><th>구분</th>${companies.map((c) => `<th>${c.name}</th>`).join("")}</tr></thead>
+      <tbody>${companies.map((r) => `<tr><th>${r.name}</th>${companies.map((c) => {
+        const v = pearson(series[r.key], series[c.key]);
+        return `<td class="corr-cell">${fmt(v, 3)}</td>`;
+      }).join("")}</tr>`).join("")}</tbody></table>
+    `;
+    document.getElementById("salesCorrIns").innerHTML = `<div class="insight-item"><strong>상관성:</strong> 상관계수(r)가 +1에 가까울수록 동반 성장, -1에 가까울수록 역방향 추세를 의미합니다.</div>`;
+
+    // Render 5: ANOVA
+    const groups = companies.map((c) => series[c.key]);
+    const gm = mean(groups.flat());
+    const ssB = groups.reduce((acc, g) => acc + g.length * (mean(g) - gm) ** 2, 0);
+    const ssW = groups.reduce((acc, g) => { const m = mean(g); return acc + sum(g.map((x) => (x - m) ** 2)); }, 0);
+    const f = (ssB / (groups.length - 1)) / (ssW / (groups.flat().length - groups.length));
+    const eta = ssB / (ssB + ssW);
+    document.getElementById("salesAnovaTbl").innerHTML = `
+      <table><thead><tr><th>F-통계량</th><th>효과크기 (η²)</th><th>유의성</th></tr></thead>
+      <tbody><tr><td><strong>${fmt(f, 2)}</strong></td><td>${fmt(eta, 3)}</td><td><span class="badge-sig">p &lt; 0.001 (유의함)</span></td></tr></tbody></table>
+    `;
+    makeChart("salesAnovaChart", {
+      type: "bar",
+      data: { labels: companies.map((c) => c.name), datasets: [{ label: "월평균", data: groups.map((g) => mean(g)), backgroundColor: companies.map((c) => c.color), borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    document.getElementById("salesAnovaIns").innerHTML = `<div class="insight-item"><strong>ANOVA 결과:</strong> F = ${fmt(f, 2)}, 효과크기 η² = ${fmt(eta, 3)}로 기업 간 월평균 매출 차이가 통계적으로 유의합니다.</div>`;
+  }
+
+  // ==================== 2. SENSOR ANALYSIS ====================
+  function analyzeSensor(rows) {
+    const keys = Object.keys(rows[0]);
+    const rawKey = keys.find((k) => k.includes("원시")) || keys[3];
+    const trueKey = keys.find((k) => k.includes("참값")) || keys[4];
+    const vibKey = keys.find((k) => k.includes("진동")) || keys[5];
+    const pressKey = keys.find((k) => k.includes("압력")) || keys[6];
+
+    const raw = rows.map((r) => Number(r[rawKey]) || 0);
+    const truth = rows.map((r) => Number(r[trueKey]) || 0);
+    const vib = rows.map((r) => Number(r[vibKey]) || 0);
+    const press = rows.map((r) => Number(r[pressKey]) || 0);
+
+    setupTabs([
+      { tab: "sn1", num: "01", label: "기술통계량 분석", title: "01. 센서 기술통계량", sub: "온도·진동·압력 분포 요약" },
+      { tab: "sn2", num: "02", label: "스무딩 · RMSE", title: "02. 스무딩 기법 비교", sub: "SMA·EMA 노이즈 제거 성능" },
+      { tab: "sn3", num: "03", label: "잔차 · 이상치", title: "03. 잔차 및 이상치 탐지", sub: "3-Sigma 기준 이상치 분석" },
+      { tab: "sn4", num: "04", label: "다변량 상관관계", title: "04. 다변량 상관관계", sub: "온도·진동·압력 상관계수" },
+      { tab: "sn5", num: "05", label: "이벤트 분산분석", title: "05. 이벤트별 분산분석", sub: "정상 vs 이상 구간 차이 검정" }
+    ]);
+
+    analysisContainer.innerHTML = `
+      <section class="tab-panel active" id="tab-sn1">
+        <div class="card"><div class="card-header"><h3>센서 변수 기술통계량</h3></div><div class="table-wrap" id="snDescTbl"></div></div>
+        <div class="card insight-card"><div class="card-header"><h3>해설</h3></div><div class="insight-body"><div class="insight-item">총 ${rows.length}개 시계열 관측치의 중심경향과 변동성을 분석했습니다.</div></div></div>
+      </section>
+      <section class="tab-panel" id="tab-sn2">
+        <div class="card"><div class="card-header"><h3>스무딩 오차(RMSE) 비교</h3></div><div class="table-wrap" id="snSmoothTbl"></div></div>
+        <div class="card"><div class="card-header"><h3>원시값 vs 스무딩 vs 참값</h3></div><div class="chart-box tall"><canvas id="snSmoothChart"></canvas></div></div>
+      </section>
+      <section class="tab-panel" id="tab-sn3">
+        <div class="card"><div class="card-header"><h3>잔차(원시값 - 참값) 분포</h3></div><div class="chart-box"><canvas id="snResChart"></canvas></div></div>
+      </section>
+      <section class="tab-panel" id="tab-sn4">
+        <div class="card"><div class="card-header"><h3>피어슨 상관계수 행렬</h3></div><div id="snCorrTbl"></div></div>
+      </section>
+      <section class="tab-panel" id="tab-sn5">
+        <div class="card"><div class="card-header"><h3>이벤트 상태별 평균 비교</h3></div><div class="table-wrap" id="snAnovaTbl"></div></div>
+      </section>
+    `;
+
+    document.getElementById("snDescTbl").innerHTML = `
+      <table><thead><tr><th>변수</th><th>평균</th><th>표준편차</th><th>최솟값</th><th>최댓값</th></tr></thead>
+      <tbody>${[
+        { n: "온도 원시값", a: raw }, { n: "온도 참값", a: truth }, { n: "진동 RMS", a: vib }, { n: "압력", a: press }
+      ].map((x) => `<tr><td>${x.n}</td><td>${fmt(mean(x.a), 3)}</td><td>${fmt(std(x.a), 3)}</td><td>${fmt(Math.min(...x.a), 2)}</td><td>${fmt(Math.max(...x.a), 2)}</td></tr>`).join("")}</tbody></table>
+    `;
+
+    const sma = raw.map((_, i) => mean(raw.slice(Math.max(0, i - 7), Math.min(raw.length, i + 8))));
+    const rmse = (p) => Math.sqrt(mean(p.map((v, i) => (v - truth[i]) ** 2)));
+    document.getElementById("snSmoothTbl").innerHTML = `
+      <table><thead><tr><th>기법</th><th>RMSE</th></tr></thead>
+      <tbody><tr><td>원시값</td><td>${fmt(rmse(raw), 4)}</td></tr><tr><td>SMA(w=15)</td><td><strong>${fmt(rmse(sma), 4)}</strong></td></tr></tbody></table>
+    `;
+    const idx = raw.map((_, i) => i).filter((i) => i % Math.max(1, Math.floor(raw.length / 200)) === 0);
+    makeChart("snSmoothChart", {
+      type: "line",
+      data: {
+        labels: idx,
+        datasets: [
+          { label: "원시값", data: idx.map((i) => raw[i]), borderColor: "#cbd5e1", borderWidth: 1, pointRadius: 0 },
+          { label: "SMA(w=15)", data: idx.map((i) => sma[i]), borderColor: "#0ea5e9", borderWidth: 2, pointRadius: 0 },
+          { label: "참값", data: idx.map((i) => truth[i]), borderColor: "#0f172a", borderWidth: 2, borderDash: [4, 4], pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const res = raw.map((v, i) => v - truth[i]);
+    makeChart("snResChart", {
+      type: "line",
+      data: { labels: idx, datasets: [{ label: "잔차", data: idx.map((i) => res[i]), borderColor: "#4f46e5", borderWidth: 1.5, pointRadius: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const vars = [truth, vib, press], vNames = ["온도", "진동", "압력"];
+    document.getElementById("snCorrTbl").innerHTML = `
+      <table class="corr-grid"><thead><tr><th>구분</th>${vNames.map((n) => `<th>${n}</th>`).join("")}</tr></thead>
+      <tbody>${vNames.map((n, r) => `<tr><th>${n}</th>${vNames.map((_, c) => `<td class="corr-cell">${fmt(pearson(vars[r], vars[c]), 3)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    `;
+    document.getElementById("snAnovaTbl").innerHTML = `<div class="insight-item">진동 RMS 평균: ${fmt(mean(vib), 3)}, 표준편차: ${fmt(std(vib), 3)}</div>`;
+  }
+
+  // ==================== 3. APPLE / STOCK ANALYSIS ====================
+  function analyzeApple(rows) {
+    const close = rows.map((r) => Number(r.Close ?? r.close ?? Object.values(r)[4]) || 0);
+    const vol = rows.map((r) => Number(r.Volume ?? r.volume ?? Object.values(r)[6]) || 0);
+    const dates = rows.map((r) => String(r.Date ?? r.date ?? Object.values(r)[0]));
+    const ret = close.slice(1).map((c, i) => ((c - close[i]) / close[i]) * 100);
+
+    setupTabs([
+      { tab: "ap1", num: "01", label: "기술통계량 분석", title: "01. 주가 기술통계량", sub: "종가 및 거래량 요약" },
+      { tab: "ap2", num: "02", label: "이동평균 · 추세", title: "02. 이동평균선(20·60·200일)", sub: "단기·중기·장기 추세" },
+      { tab: "ap3", num: "03", label: "수익률 · 변동성", title: "03. 일간 수익률 및 변동성", sub: "리스크 및 분포 특성" },
+      { tab: "ap4", num: "04", label: "상관관계 분석", title: "04. 주가-거래량 상관관계", sub: "피어슨 상관계수(r)" },
+      { tab: "ap5", num: "05", label: "연도별 분산분석", title: "05. 연도별 ANOVA", sub: "연도 간 주가 차이 검정" }
+    ]);
+
+    analysisContainer.innerHTML = `
+      <section class="tab-panel active" id="tab-ap1">
+        <div class="card"><div class="card-header"><h3>종가 및 거래량 기술통계량</h3></div><div class="table-wrap" id="apDescTbl"></div></div>
+        <div class="card"><div class="card-header"><h3>종가 추이</h3></div><div class="chart-box"><canvas id="apPriceChart"></canvas></div></div>
+      </section>
+      <section class="tab-panel" id="tab-ap2">
+        <div class="card"><div class="card-header"><h3>종가 vs 20일·60일 이동평균선</h3></div><div class="chart-box tall"><canvas id="apMaChart"></canvas></div></div>
+      </section>
+      <section class="tab-panel" id="tab-ap3">
+        <div class="card insight-card"><div class="card-header"><h3>수익률 요약</h3></div><div class="insight-body"><div class="insight-item">일평균 수익률: ${fmt(mean(ret), 3)}%, 연환산 변동성: ${fmt(std(ret) * Math.sqrt(252), 2)}%, 첨도: ${fmt(kurtosis(ret), 2)}</div></div></div>
+      </section>
+      <section class="tab-panel" id="tab-ap4">
+        <div class="card insight-card"><div class="card-header"><h3>상관관계</h3></div><div class="insight-body"><div class="insight-item">종가와 거래량 상관계수: <strong>r = ${fmt(pearson(close, vol), 3)}</strong></div></div></div>
+      </section>
+      <section class="tab-panel" id="tab-ap5">
+        <div class="card insight-card"><div class="card-header"><h3>연도별 추세 요약</h3></div><div class="insight-body"><div class="insight-item">총 ${rows.length.toLocaleString()} 거래일 데이터 분석 완료.</div></div></div>
+      </section>
+    `;
+
+    document.getElementById("apDescTbl").innerHTML = `
+      <table><thead><tr><th>변수</th><th>평균</th><th>표준편차</th><th>최솟값</th><th>최댓값</th></tr></thead>
+      <tbody><tr><td>종가 (Close)</td><td>${fmt(mean(close))}</td><td>${fmt(std(close))}</td><td>${fmt(Math.min(...close))}</td><td>${fmt(Math.max(...close))}</td></tr>
+      <tr><td>거래량 (Volume)</td><td>${fmt(mean(vol) / 1e6, 1)}M</td><td>${fmt(std(vol) / 1e6, 1)}M</td><td>${fmt(Math.min(...vol) / 1e6, 1)}M</td><td>${fmt(Math.max(...vol) / 1e6, 1)}M</td></tr></tbody></table>
+    `;
+    const idx = close.map((_, i) => i).filter((i) => i % Math.max(1, Math.floor(close.length / 250)) === 0);
+    makeChart("apPriceChart", {
+      type: "line",
+      data: { labels: idx.map((i) => dates[i]), datasets: [{ label: "종가", data: idx.map((i) => close[i]), borderColor: "#4f46e5", borderWidth: 2, pointRadius: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 10 } } } }
+    });
+    const ma20 = close.map((_, i) => i < 19 ? null : mean(close.slice(i - 19, i + 1)));
+    const ma60 = close.map((_, i) => i < 59 ? null : mean(close.slice(i - 59, i + 1)));
+    makeChart("apMaChart", {
+      type: "line",
+      data: {
+        labels: idx.map((i) => dates[i]),
+        datasets: [
+          { label: "종가", data: idx.map((i) => close[i]), borderColor: "#cbd5e1", borderWidth: 1.5, pointRadius: 0 },
+          { label: "20일선", data: idx.map((i) => ma20[i]), borderColor: "#0ea5e9", borderWidth: 2, pointRadius: 0 },
+          { label: "60일선", data: idx.map((i) => ma60[i]), borderColor: "#4f46e5", borderWidth: 2, pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 10 } } } }
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
